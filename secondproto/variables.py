@@ -1,8 +1,5 @@
-SEARCH_LOCATION = "United States"
-SEARCH_KEYWORD = "Software Engineer"
-MAX_JOB_CYCLE = 5
-
-COUNTER_DICT = dict()
+PYTHON = ('python', '(\spython( |$|.|,$\n))')
+JAVA = ('jsp', '(\s((jsp)|(Java\sServer\sPages)|(Servlets))( |$|.|,))')
 KEYWORD_LIST = [
 	('php', '\sphp( |$|.|,)'),
 	('vsts', '\svsts( |$|.|,)'),
@@ -37,7 +34,7 @@ KEYWORD_LIST = [
 	('unit test', '(\sunit\s?test( |$|.|,))'),
 	('agile', '(\sagile( |$|.|,))'),
 	('CI/CD', '(\s((ci\/cd)|(continuous\sintegration))( |$|.|,))'),
-	('python', '(\spython( |$|.|,$\n))'),
+	PYTHON,
 	('react', '(\sreact( |$|.|,))'),
 	('docker', '(\sdocker( |$|.|,))'),
 	('postgres', '(\spostgres( |$|.|,))'),
@@ -50,10 +47,17 @@ KEYWORD_LIST = [
 	('ajax', '(\sajax( |$|.|,))'),
 	('angular', '(\sangular( |$|.|,))'),
 	('c#', '(\sc#( |$|.|,))'),
-	('jsp', '(\s((jsp)|(Java\sServer\sPages)|(Servlets))( |$|.|,))'),
+	JAVA,
 	('cobol', '(\scobol( |$|.|,))'),
 	('devops', '(\sdev\s?ops?( |$|.|,))'),
 	('azure', '(\sazure( |$|.|,))'),
 	('window', '(\swindows( |$|.|,))'),
 	('jquery', '(\sjquery( |$|.|,))'),
 ]
+
+criteria1_dict = {'SEARCH_LOCATION': "United States", "SEARCH_KEYWORD": "Software Engineer", "MAX_JOB_CYCLE": 2, "CRITERIA_KEYWORD":(PYTHON, JAVA)}
+criteria2_dict = {'SEARCH_LOCATION': "Iowa, United States", "SEARCH_KEYWORD": "Software Developer", "MAX_JOB_CYCLE": 5}
+CRITERIA_TUPLE = (criteria1_dict)
+
+COUNTER_DICT = dict()
+

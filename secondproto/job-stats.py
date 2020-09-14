@@ -1,9 +1,13 @@
 """
 	This script accesses public jobs posted in LinkedIn and gives a job count
 	based on keywords used in job description. Example: Java, Python, etc
+
+	Added functionality 1:
+	Now we can search jobs for different criterias at
+	once. Look at variables.py's "CRITERIA_TUPLE"
 """
 
-# import python scrapping modules
+# import python modules
 import os
 from bs4 import BeautifulSoup as bsoup4
 import json
@@ -14,9 +18,8 @@ import time
 from datetime import datetime
 from difflib import SequenceMatcher
 
-# import variables. Example: how to jobs to look at, what keywords to search for etc
-from variables import SEARCH_LOCATION, SEARCH_KEYWORD, MAX_JOB_CYCLE
-from variables import COUNTER_DICT, KEYWORD_LIST
+# import custom variables.
+from variables import COUNTER_DICT, KEYWORD_LIST, CRITERIA_TUPLE
 
 # cookie = cookielib.LWPCookieJar()
 # cookies = {'required_cookie': cookie}
@@ -28,12 +31,6 @@ all_keywords_regex_list = list()
 for item in KEYWORD_LIST:
 	(keyword, regex) = item
 	COUNTER_DICT[keyword] = 0
-
-# Log file
-mmddyyyy = datetime.today().strftime('%Y-%m-%d')
-cur_path = os.path.dirname(__file__)
-new_path = os.path.relpath('..\\logs\\{mmddyyyy}-log', cur_path)
-log_file = open(new_path, 'w')
 
 
 def similar(a, b):
@@ -80,73 +77,87 @@ def hit_link_and_parse_description(job_description_a_tag_list):
 			if not all_keyword_regex.search(job_description_text):
 				log_file.write(job_detail_link)
 
-print (datetime.now())
-print ("Analyzing for:")
-print ("\tLocation: %s" % SEARCH_LOCATION)
-print ("\tKeyword: %s" % SEARCH_KEYWORD)
-print ("\tLooking at only: %d" % (MAX_JOB_CYCLE*25) + " jobs")
+def search_jobs(SEARCH_LOCATION, SEARCH_KEYWORD, MAX_JOB_CYCLE):
+	print (datetime.now())
+	print ("Analyzing for:")
+	print ("\tLocation: %s" % SEARCH_LOCATION)
+	print ("\tKeyword: %s" % SEARCH_KEYWORD)
+	print ("\tLooking at only: %d" % (MAX_JOB_CYCLE*25) + " jobs")
 
-# Sample link
-# 
-main_link = "https://www.linkedin.com/jobs/search?location=%s" % SEARCH_LOCATION +"&redirect=false&keywords=%s&trk=homepage-basic_recent-search" % SEARCH_KEYWORD
+	# Sample link
+	# 
+	main_link = "https://www.linkedin.com/jobs/search?location=%s" % SEARCH_LOCATION +"&redirect=false&keywords=%s&trk=homepage-basic_recent-search" % SEARCH_KEYWORD
 
-job_list_handler = requests.get(main_link)
-job_list_html = job_list_handler.text
+	job_list_handler = requests.get(main_link)
+	job_list_html = job_list_handler.text
 
-# job details
-job_list_soup = bsoup4(job_list_html, 'html.parser')
+	# job details
+	job_list_soup = bsoup4(job_list_html, 'html.parser')
 
-latest_post_date_list = job_list_soup.find_all('time', {'class': 'job-result-card__listdate--new'})
-if latest_post_date_list:
-	latest_post_date = datetime.strptime("2020-01-01", '%Y-%m-%d')
-	for item in latest_post_date_list:
-		post_date = datetime.strptime(item['datetime'], '%Y-%m-%d')
-		if latest_post_date < post_date:
-			latest_post_hour = item.text
-else:
-	latest_post_date_list = job_list_soup.find_all('time', {'class': 'job-result-card__listdate'})
+	latest_post_date_list = job_list_soup.find_all('time', {'class': 'job-result-card__listdate--new'})
 	if latest_post_date_list:
 		latest_post_date = datetime.strptime("2020-01-01", '%Y-%m-%d')
 		for item in latest_post_date_list:
 			post_date = datetime.strptime(item['datetime'], '%Y-%m-%d')
 			if latest_post_date < post_date:
 				latest_post_hour = item.text
+	else:
+		latest_post_date_list = job_list_soup.find_all('time', {'class': 'job-result-card__listdate'})
+		if latest_post_date_list:
+			latest_post_date = datetime.strptime("2020-01-01", '%Y-%m-%d')
+			for item in latest_post_date_list:
+				post_date = datetime.strptime(item['datetime'], '%Y-%m-%d')
+				if latest_post_date < post_date:
+					latest_post_hour = item.text
 
-job_description_a_tag_list = job_list_soup.find_all('a', {'class': 'result-card__full-card-link'})
-hit_link_and_parse_description(job_description_a_tag_list)
-
-job_batch_count = 25
-while job_batch_count<(MAX_JOB_CYCLE*25):
-	job_batch_count += 25
-	# job more list
-	next_page_url = "https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=%s&location=%s&trk=homepage-basic_jobs-search-bar_search-submit&redirect=false&start=%s" % (SEARCH_KEYWORD, SEARCH_LOCATION, job_batch_count)
-	headers = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.90 Safari/537.36'}
-
-	try:
-		job_list_more_handler = requests.get(next_page_url, headers=headers)
-	except requests.exceptions.HTTPError:
-		continue
-	job_list_html = job_list_more_handler.text
-
-	# job details
-	job_list_soup = bsoup4(job_list_html ,'html.parser')
 	job_description_a_tag_list = job_list_soup.find_all('a', {'class': 'result-card__full-card-link'})
-	if not job_description_a_tag_list:
-		print ("\n >> Not found job in next page.")
 	hit_link_and_parse_description(job_description_a_tag_list)
 
-print ("\n")
-print ("Analysed: %d" % total_jobs + " jobs")
-print ("Got: %d" % duplicate_job_count + " duplicate job posting")
-print ("Got: %d" % error_count + " HTTP Request denied error")
-print ("\n")
+	job_batch_count = 25
+	while job_batch_count<(MAX_JOB_CYCLE*25):
+		job_batch_count += 25
+		# job more list
+		next_page_url = "https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=%s&location=%s&trk=homepage-basic_jobs-search-bar_search-submit&redirect=false&start=%s" % (SEARCH_KEYWORD, SEARCH_LOCATION, job_batch_count)
+		headers = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.90 Safari/537.36'}
 
-total_keyword_hit = 0
-print ("Number of jobs asking for:")
-for key, value in sorted(COUNTER_DICT.items(), key=lambda item: item[1], reverse=True):
-	if value != 0 and value >= 1:
-		print ("\t"+key.upper()+": %d" % value)
-		total_keyword_hit+=value
+		try:
+			job_list_more_handler = requests.get(next_page_url, headers=headers)
+		except requests.exceptions.HTTPError:
+			continue
+		job_list_html = job_list_more_handler.text
 
-print ("Total keywords hit: %s" % total_keyword_hit)
-log_file.close()
+		# job details
+		job_list_soup = bsoup4(job_list_html ,'html.parser')
+		job_description_a_tag_list = job_list_soup.find_all('a', {'class': 'result-card__full-card-link'})
+		if not job_description_a_tag_list:
+			print ("\n >> Not found job in next page.")
+		hit_link_and_parse_description(job_description_a_tag_list)
+
+	print ("\n")
+	print ("Analysed: %d" % total_jobs + " jobs")
+	print ("Got: %d" % duplicate_job_count + " duplicate job posting")
+	print ("Got: %d" % error_count + " HTTP Request denied error")
+	print ("\n")
+
+	total_keyword_hit = 0
+	print ("Number of jobs asking for:")
+	for key, value in sorted(COUNTER_DICT.items(), key=lambda item: item[1], reverse=True):
+		if value != 0 and value >= 1:
+			print ("\t"+key.upper()+": %d" % value)
+			total_keyword_hit+=value
+
+	print ("Total keywords hit: %s" % total_keyword_hit)
+	log_file.close()
+
+for criteria in CRITERIA_TUPLE:
+	SEARCH_LOCATION = criteria['SEARCH_LOCATION']
+	SEARCH_KEYWORD = criteria['SEARCH_KEYWORD']
+	MAX_JOB_CYCLE = criteria['MAX_JOB_CYCLE']
+	
+	# Log file
+	mmddyyyy = datetime.today().strftime('%Y-%m-%d')
+	cur_path = os.path.dirname(__file__)
+	new_path = os.path.relpath('..\\logs\\{mmddyyyy}-log', cur_path)
+	log_file = open(new_path, 'w')
+	
+	search_jobs(SEARCH_LOCATION, SEARCH_KEYWORD, MAX_JOB_CYCLE)
