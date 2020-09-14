@@ -2,4 +2,5 @@
 
 #### How to run?
 
-python secondproto/job-statsv1.2.py
+cd secondproto
+python job-statsv1.2.py
